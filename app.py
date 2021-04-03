@@ -1,7 +1,7 @@
 import os
 import requests as rq
 import pandas as pd
-from statsmodels.tsa.arima_model import ARIMA
+from statsmodels.tsa.arima_model import ARIMA, ARMA
 from statsmodels.tsa.seasonal import seasonal_decompose
 
 from matplotlib import font_manager, rc
@@ -20,6 +20,7 @@ CODE = {
   "안랩": "053800",
   "엔씨소프트": "036570",
   "유바이오로직스": "206650",
+  "디피씨": "026890"
 }
 
 URL = 'https://m.stock.naver.com/api/item/getPriceDayList.nhn?code={code}&pageSize=10000&page=1'
@@ -65,25 +66,22 @@ def _dt(dtStr):
 
 if __name__ == "__main__":
   save_dir = 'data/{date}'.format(date=getTodayDatetime())
+  
   if not os.path.exists(save_dir):
     os.mkdir(save_dir)
 
   names = [
-    "삼성전자",
     "카카오",
     "NAVER",
     "엔씨소프트",
-    # "안랩",
-    # "유바이오로직스",
   ]
-  # names = ['안랩']
 
   for nameIdx, name in enumerate(names):
-    predictCnt = 20
+    predictCnt = 200
     fundData = getFund(name)
 
     lastDate = getLastDate(fundData)
-    model = ARIMA(fundData, order=(1,1,1))
+    model = ARIMA(fundData, order=(2,1,2))
     model_fit = model.fit(trend='c', full_output=False, disp=1, freq='D') # trend: c, nc
     print(model_fit.summary())
 
@@ -101,14 +99,15 @@ if __name__ == "__main__":
       dt = lastDate + timedelta(days=idx + 1)
       next_d['dt'].append(dt)
       next_d['ncv'].append(val)
-      print(lastDate + timedelta(days=idx + 1), val)
+      # print(lastDate + timedelta(days=idx + 1), val)
 
     df = pd.DataFrame(next_d)
     
-    plt.subplot(len(names)+1, 1, nameIdx+1) 
+    if (len(names) != 1):
+      plt.subplot(len(names)+1, 1, nameIdx+1) 
 
-    plt.plot(prev_d['dt'], prev_d['ncv'], label="실츨값", marker='o')
-    plt.plot(df['dt'], df['ncv'], label="예측값",marker='x')
+    plt.plot(prev_d['dt'], prev_d['ncv'], label="실츨값", marker='x')
+    plt.plot(df['dt'], df['ncv'], label="예측값",)
 
     if len(names) - 1 != nameIdx: 
       ax = plt.gca()
